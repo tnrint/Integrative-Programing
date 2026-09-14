@@ -321,7 +321,7 @@ main{
 .index-card::before{
   content: '';
   position: absolute;
-  top: 46px; left: 0; right: 0;
+  top: 46px; right: 0;
   height: 1px;
   background: var(--card-edge);
 }
