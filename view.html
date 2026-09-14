@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shelfline — Book card</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="rail">
+  <div class="rail-inner">
+    <div>
+      <div class="wordmark">Shelf<em>line</em></div>
+      <div class="rail-tagline">a catalog of what you're reading</div>
+    </div>
+    <nav>
+      <a href="index.html">The shelf</a>
+      <a href="add.html">Catalog a book</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="page-head">
+    <div>
+      <h1>Book card</h1>
+      <p>Everything catalogued about this book.</p>
+    </div>
+    <a class="btn btn-quiet" href="index.html">&larr; Back to the shelf</a>
+  </div>
+
+  <div id="not-found" style="display:none;" class="empty-shelf">
+    <h2>This card isn't on the shelf</h2>
+    <p>It may have already been removed. <a href="index.html">Back to the shelf</a>.</p>
+  </div>
+
+  <div class="detail-card" id="detail-card" style="display:none;">
+    <div class="detail-call" id="detail-call"></div>
+    <h2 class="detail-title" id="detail-title"></h2>
+    <div class="detail-author" id="detail-author"></div>
+
+    <dl>
+      <div class="detail-row">
+        <dt>Genre</dt>
+        <dd id="detail-genre"></dd>
+      </div>
+      <div class="detail-row">
+        <dt>Status</dt>
+        <dd id="detail-status"></dd>
+      </div>
+      <div class="detail-row">
+        <dt>Notes</dt>
+        <dd id="detail-notes" class="detail-notes"></dd>
+      </div>
+    </dl>
+
+    <div class="detail-actions">
+      <a class="btn btn-primary" id="edit-link" href="#">Edit this entry</a>
+      <button class="btn btn-danger" id="delete-btn" type="button">Delete</button>
+    </div>
+  </div>
+</main>
+
+<footer>Shelfline &mdash; records are stored in this browser only.</footer>
+
+<script src="storage.js"></script>
+<script>
+  const id = qs('id');
+  const book = id ? getBook(id) : null;
+  const confirmDelete = setupConfirmDialog();
+
+  if (!book){
+    document.getElementById('not-found').style.display = 'block';
+  } else {
+    const card = document.getElementById('detail-card');
+    card.style.display = 'block';
+    card.style.setProperty('--spine', SPINE_COLOR[book.genre] || '#1f3327');
+
+    document.getElementById('detail-call').textContent = callNumber(book);
+    document.getElementById('detail-title').textContent = book.title;
+    document.getElementById('detail-author').textContent = book.author + (book.year ? `, ${book.year}` : '');
+    document.getElementById('detail-genre').textContent = book.genre;
+
+    const statusClass = { Unread: 'stamp-unread', Reading: 'stamp-reading', Read: 'stamp-read' }[book.status] || 'stamp-unread';
+    document.getElementById('detail-status').innerHTML = `<span class="stamp ${statusClass}">${escapeHtml(book.status)}</span>`;
+
+    document.getElementById('detail-notes').textContent = book.notes && book.notes.trim() ? book.notes : 'No notes yet.';
+    document.getElementById('edit-link').href = `edit.html?id=${id}`;
+
+    document.getElementById('delete-btn').addEventListener('click', () => {
+      confirmDelete(book.title, () => {
+        deleteBook(id);
+        window.location.href = 'index.html';
+      });
+    });
+  }
+</script>
+</body>
+</html>

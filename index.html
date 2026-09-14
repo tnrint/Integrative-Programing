@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shelfline — The Shelf</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="rail">
+  <div class="rail-inner">
+    <div>
+      <div class="wordmark">Shelf<em>line</em></div>
+      <div class="rail-tagline">a catalog of what you're reading</div>
+    </div>
+    <nav>
+      <a href="index.html">The shelf</a>
+      <a href="add.html">Catalog a book</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="page-head">
+    <div>
+      <h1>The shelf</h1>
+      <p>Every book you've logged, in one drawer. Open a card to read notes, or update the record from here.</p>
+    </div>
+    <a class="btn btn-primary" href="add.html">+ Catalog a book</a>
+  </div>
+
+  <div class="toolbar">
+    <input type="search" id="search" placeholder="Search by title or author…" aria-label="Search books">
+    <select id="filter-genre" aria-label="Filter by genre">
+      <option value="">All genres</option>
+    </select>
+    <select id="filter-status" aria-label="Filter by status">
+      <option value="">Any status</option>
+    </select>
+    <span class="shelf-count" id="shelf-count"></span>
+  </div>
+
+  <div class="shelf" id="shelf"></div>
+</main>
+
+<footer>Shelfline &mdash; records are stored in this browser only.</footer>
+
+<script src="storage.js"></script>
+<script>
+  const shelfEl = document.getElementById('shelf');
+  const countEl = document.getElementById('shelf-count');
+  const searchEl = document.getElementById('search');
+  const genreEl = document.getElementById('filter-genre');
+  const statusEl = document.getElementById('filter-status');
+  const confirmDelete = setupConfirmDialog();
+
+  GENRES.forEach(g => genreEl.insertAdjacentHTML('beforeend', `<option value="${g}">${g}</option>`));
+  STATUSES.forEach(s => statusEl.insertAdjacentHTML('beforeend', `<option value="${s}">${s}</option>`));
+
+  function statusClass(status){
+    return { Unread: 'stamp-unread', Reading: 'stamp-reading', Read: 'stamp-read' }[status] || 'stamp-unread';
+  }
+
+  function render(){
+    const q = searchEl.value.trim().toLowerCase();
+    const g = genreEl.value;
+    const s = statusEl.value;
+
+    const books = getBooks().filter(b => {
+      const matchesQ = !q || b.title.toLowerCase().includes(q) || b.author.toLowerCase().includes(q);
+      const matchesG = !g || b.genre === g;
+      const matchesS = !s || b.status === s;
+      return matchesQ && matchesG && matchesS;
+    });
+
+    countEl.textContent = books.length === 1 ? '1 book' : `${books.length} books`;
+
+    if (books.length === 0){
+      shelfEl.innerHTML = `
+        <div class="empty-shelf" style="grid-column: 1/-1;">
+          <h2>Nothing on this part of the shelf</h2>
+          <p>${getBooks().length === 0 ? 'You haven\u2019t catalogued any books yet.' : 'Try a different search or filter.'}</p>
+        </div>`;
+      return;
+    }
+
+    shelfEl.innerHTML = books.map(b => `
+      <article class="book-card" style="--spine: ${SPINE_COLOR[b.genre] || '#1f3327'}">
+        <div class="book-call">${callNumber(b)}</div>
+        <h3 class="book-title"><a href="view.html?id=${b.id}">${escapeHtml(b.title)}</a></h3>
+        <div class="book-author">${escapeHtml(b.author)}${b.year ? ', ' + b.year : ''}</div>
+        <div class="book-meta">
+          <span>${escapeHtml(b.genre)}</span>
+          <span class="stamp ${statusClass(b.status)}">${escapeHtml(b.status)}</span>
+        </div>
+        <div class="book-actions">
+          <a class="btn btn-quiet btn-sm" href="view.html?id=${b.id}">View</a>
+          <a class="btn btn-quiet btn-sm" href="edit.html?id=${b.id}">Edit</a>
+          <button class="btn btn-danger btn-sm" data-del="${b.id}" data-title="${escapeHtml(b.title)}" type="button">Delete</button>
+        </div>
+      </article>
+    `).join('');
+  }
+
+  shelfEl.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-del]');
+    if (!btn) return;
+    confirmDelete(btn.dataset.title, () => {
+      deleteBook(btn.dataset.del);
+      showToast('Removed from the shelf.');
+      render();
+    });
+  });
+
+  [searchEl, genreEl, statusEl].forEach(el => el.addEventListener('input', render));
+
+  render();
+</script>
+</body>
+</html>

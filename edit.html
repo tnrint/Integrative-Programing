@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shelfline — Edit entry</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="rail">
+  <div class="rail-inner">
+    <div>
+      <div class="wordmark">Shelf<em>line</em></div>
+      <div class="rail-tagline">a catalog of what you're reading</div>
+    </div>
+    <nav>
+      <a href="index.html">The shelf</a>
+      <a href="add.html">Catalog a book</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="page-head">
+    <div>
+      <h1 id="page-title">Edit entry</h1>
+      <p>Update the record. Changes save back to the same card.</p>
+    </div>
+  </div>
+
+  <div id="not-found" style="display:none;" class="empty-shelf">
+    <h2>This card isn't on the shelf</h2>
+    <p>It may have already been removed. <a href="index.html">Back to the shelf</a>.</p>
+  </div>
+
+  <form class="index-card" id="book-form" novalidate>
+    <div class="field" id="field-title">
+      <label for="title">Title</label>
+      <input type="text" id="title" name="title" maxlength="120" required>
+      <div class="field-error">Every book needs a title.</div>
+    </div>
+
+    <div class="field" id="field-author">
+      <label for="author">Author</label>
+      <input type="text" id="author" name="author" maxlength="80" required>
+      <div class="field-error">Who wrote it?</div>
+    </div>
+
+    <div class="field-row">
+      <div class="field" id="field-genre">
+        <label for="genre">Genre</label>
+        <select id="genre" name="genre"></select>
+      </div>
+      <div class="field" id="field-year">
+        <label for="year">Year published</label>
+        <input type="number" id="year" name="year" min="1000" max="2100" placeholder="e.g. 2019">
+        <div class="field-error">Enter a year between 1000 and 2100.</div>
+      </div>
+    </div>
+
+    <div class="field" id="field-status">
+      <label for="status">Status</label>
+      <select id="status" name="status"></select>
+    </div>
+
+    <div class="field" id="field-notes">
+      <label for="notes">Notes</label>
+      <textarea id="notes" name="notes" maxlength="500"></textarea>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Save changes</button>
+      <a class="btn btn-quiet" href="index.html" id="cancel-link">Cancel</a>
+      <button type="button" class="btn btn-danger" id="delete-btn" style="margin-left:auto;">Delete this book</button>
+    </div>
+  </form>
+</main>
+
+<footer>Shelfline &mdash; records are stored in this browser only.</footer>
+
+<script src="storage.js"></script>
+<script>
+  const id = qs('id');
+  const book = id ? getBook(id) : null;
+  const form = document.getElementById('book-form');
+  const genreEl = document.getElementById('genre');
+  const statusEl = document.getElementById('status');
+  const confirmDelete = setupConfirmDialog();
+
+  GENRES.forEach(g => genreEl.insertAdjacentHTML('beforeend', `<option value="${g}">${g}</option>`));
+  STATUSES.forEach(s => statusEl.insertAdjacentHTML('beforeend', `<option value="${s}">${s}</option>`));
+
+  if (!book){
+    form.style.display = 'none';
+    document.getElementById('not-found').style.display = 'block';
+  } else {
+    document.getElementById('page-title').textContent = `Edit \u201c${book.title}\u201d`;
+    form.title.value = book.title || '';
+    form.author.value = book.author || '';
+    genreEl.value = book.genre || GENRES[0];
+    form.year.value = book.year || '';
+    statusEl.value = book.status || STATUSES[0];
+    form.notes.value = book.notes || '';
+    document.getElementById('cancel-link').href = `view.html?id=${id}`;
+  }
+
+  function setInvalid(fieldId, invalid){
+    document.getElementById(fieldId).classList.toggle('invalid', invalid);
+  }
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+
+    const title = form.title.value.trim();
+    const author = form.author.value.trim();
+    const year = form.year.value.trim();
+
+    const titleOk = title.length > 0;
+    const authorOk = author.length > 0;
+    const yearOk = year === '' || (Number(year) >= 1000 && Number(year) <= 2100);
+
+    setInvalid('field-title', !titleOk);
+    setInvalid('field-author', !authorOk);
+    setInvalid('field-year', !yearOk);
+
+    if (!titleOk || !authorOk || !yearOk){
+      form.querySelector('.invalid input, .invalid select')?.focus();
+      return;
+    }
+
+    updateBook(id, {
+      title,
+      author,
+      genre: genreEl.value,
+      year: year ? Number(year) : null,
+      status: statusEl.value,
+      notes: form.notes.value.trim()
+    });
+
+    window.location.href = `view.html?id=${id}`;
+  });
+
+  document.getElementById('delete-btn').addEventListener('click', () => {
+    confirmDelete(book.title, () => {
+      deleteBook(id);
+      window.location.href = 'index.html';
+    });
+  });
+</script>
+</body>
+</html>
